@@ -1,11 +1,13 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-// How many leds in your strip?
+// Modify these according to your setup
 #define NUM_LEDS 150
 #define DATA_PIN_LEFT 3
 #define DATA_PIN_RIGHT 10
 #define MAX_POWER_MILLIAMPS 2500
+#define PROTOCOL WS2812B
+#define COLOR_ORDER GBR
 
 // Define the arrays of leds
 CRGB leds_left[NUM_LEDS];
@@ -15,7 +17,10 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(1000);
 
-  // Uncomment/edit one of the following lines for your leds arrangement.
+  FastLED.addLeds<PROTOCOL, DATA_PIN_LEFT, COLOR_ORDER>(leds_left, NUM_LEDS);
+  FastLED.addLeds<PROTOCOL, DATA_PIN_RIGHT, COLOR_ORDER>(leds_right, NUM_LEDS);
+
+  // You may use this as a refrence of protocols and color orderings
   // ## Clockless types ##
 
   // FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);  // GRB ordering is assumed
@@ -30,10 +35,7 @@ void setup() {
   // FastLED.addLeds<UCS1903B, DATA_PIN, RGB>(leds, NUM_LEDS);
   // FastLED.addLeds<UCS1904, DATA_PIN, RGB>(leds, NUM_LEDS);
   // FastLED.addLeds<UCS2903, DATA_PIN, RGB>(leds, NUM_LEDS);
-
-  FastLED.addLeds<WS2812B, DATA_PIN_LEFT, GBR>(leds_left, NUM_LEDS);    // GRB ordering is typical
-  FastLED.addLeds<WS2812B, DATA_PIN_RIGHT, GBR>(leds_right, NUM_LEDS);  // GRB ordering is typical
-
+  // FastLED.addLeds<WS2812B, DATA_PIN_LEFT, GRB>(leds, NUM_LEDS);    // GRB ordering is typical
   // FastLED.addLeds<WS2852, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
   // FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);  // GRB ordering is typical
   // FastLED.addLeds<GS1903, DATA_PIN, RGB>(leds, NUM_LEDS);
