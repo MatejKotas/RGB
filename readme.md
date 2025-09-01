@@ -26,25 +26,25 @@ You should also have:
 
 For my microcontroller, I used an Arduino Flora because that is what I had on hand. However, anything that is programmable via Arduino IDE and that has a usb port should work.
 
-![Picture of Arduino Flora](image1.jpg)
+![Picture of Arduino Flora](readme_images/image1.jpg)
 
 The led strips I'm using are WS2812B 60Pixels/m. I'm using 5m of led strips in total (2.5m per side). The led strip protocol must be supported by the [FastLED](https://fastled.io/) library, and it should be clockless (3 wires rather than 4 wires). If using a Clocked (SPI) led strip, you will need to modify the arduino code somewhat.
 
-![Picture of LED strip](image2.jpg)
+![Picture of LED strip](readme_images/image2.jpg)
 
 To connect the led strips to the microcontroller, I braided some wires. The lengths of these wires should be derived from where your computer is relative to where the led strips shall be, and where the led strips shall be in relation to each other. For my setup, I have a 4-wire cable from the arduino to the base of one led strip, and a 3-wire cable from the base of one led strip to the base of the other led strip. The 4-wire cable has 5v, ground, data_left, and data_right; The 3-wire cable has 5v, ground, and data_right. 
 
-![Picture of 4 braided wires](image3.jpg)
-![Picture of 3 braided wires](image4.jpg)
-![Picture of joint between the two cables and a led strip](image5.jpg)
+![Picture of 4 braided wires](readme_images/image3.jpg)
+![Picture of 3 braided wires](readme_images/image4.jpg)
+![Picture of joint between the two cables and a led strip](readme_images/image5.jpg)
 
 For the power source, I sacrificed a microUSB charing brick. Just cut off the end, strip the wire, and twist the end to avoid fraying. My power cable had dashes along the + terminal (vis the image below). I am using a 12.5 watt power source for 90 watts worth of leds. This is fine because FastLED has a power limiter feature. It is worth noting that even with a weak power source, my setup is more than bright enough. In fact, I usually run it at half brightness.
 
-![Close up of power cable](image6.jpg)
+![Close up of power cable](readme_images/image6.jpg)
 
 To connect the 4-braided cable to the arduino and power source, I used these screw-based connectors for servicability, and because these are what I had readily available. Make sure to connect the ground of the power source to the ground of the arduino. Obviously, the connections here need to match the pinout of the led strips. Solder the other ends of the small connector wires for 2x data and 1x ground lines.
 
-![Arduino back side](image7.jpg)
+![Arduino back side](readme_images/image7.jpg)
 
 ### Part 2: The Software
 
