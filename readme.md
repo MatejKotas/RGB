@@ -68,13 +68,17 @@ Use [Arduino IDE](https://www.arduino.cc/en/software/) to upload Arduino/Arduino
 
 To install FastLED, use the built in library manager. If you don't see your board listed, You might need to [configure additional Board Manager URLs](https://support.arduino.cc/hc/en-us/articles/360016466340-Add-third-party-platforms-to-the-Boards-Manager-in-Arduino-IDE). If, like me, you are using an Arduino Flora, you need the following url: 
 
-> https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
+```
+https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
+```
 
 ### Part 3: Testing and Calibration
 
 With everything set up, run 
 
-> python3 test.py
+```
+python3 test.py
+```
 
 This should make the left led strip light up red, and right right led strip light up green. 
 
@@ -86,8 +90,10 @@ This should make the left led strip light up red, and right right led strip ligh
 1. Change your computer audio output to VB-Cable
 2. With the terminal open, run the following:
 
-> cd PC
-> python3 main.py
+```
+cd PC
+python3 main.py
+```
 
 - Select VB-Cable for the input device
 - Select whichever speaker output
@@ -95,16 +101,21 @@ This should make the left led strip light up red, and right right led strip ligh
 
 3. Try playing some music, and enjoy the show.
 
-There are some parameters in main.py that alter the behavior of the leds. To change these type
+There are some parameters in main.py that alter the behavior of the leds. To change these type the following when the program is running:
 
-> setting=value
+```
+setting=value
+```
 E.g.
-> brightness=0.25
+```
+brightness=0.25
+```
 
 Here is what each of the settings do:
 
 - mode: There is currently only one mode and that mode is 0
 - white_multiplier: Decimal, accepts values greater than 0. Larger values make the color closer to white
+- smoothing: Decimal, accepts values from 0 up to but excluding 1. Larger values make the led strip fade out over a longer time period.
 - wobble: Decimal, accepts values from 0 to 1. If the peak frequency is below wobble_start, then a wobble effect is applied, and this determines the strength of the effect
 - wobble_start: Integer, accepts any value. Default value is 60, which applies the wobble effect to just sub-bass
 - brightness: Decimal, accepts values from 0 to 1. 
