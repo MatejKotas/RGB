@@ -26,10 +26,24 @@ for i in range(p.get_device_count()):
     info = p.get_device_info_by_index(i)
     print(f'Device {i + 1}: {info['name']}')
 
+def input_number(type, lower, upper):
+    while True:
+        a = input()
+        try:
+            b = type(a)
+
+            if lower <= b <= upper:
+                return b
+            else:
+                print("Number out of range.")
+
+        except ValueError:
+            print("Number could not be parsed.")
+
 print('\nSelect input device')
-input_device = int(input()) - 1
+input_device = input_number(int, 1, p.get_device_count()) - 1
 print('Select output device')
-output_device = int(input()) - 1
+output_device = input_number(int, 1, p.get_device_count()) - 1
 
 print("\nAvailable ports:\n")
 
@@ -38,7 +52,8 @@ for i, port in enumerate(ports, 1):
     print(f"{i}: {port.device}")
 
 print("\nSelect port")
-port = ports[int(input()) - 1]
+port_index = input_number(int, 1, len(ports)) - 1
+port = ports[port_index]
 
 data = None
 new_data = False
@@ -70,12 +85,32 @@ b = np.where(sectors == 5, (-hues) % 1, b)
 color_wheel = np.stack((r, g, b), axis=1).reshape(len(frequencies), 3)
 r, g, b = None, None, None
 
-arduino = serial.Serial(port=port.device, baudrate=BAUDRATE, timeout=1)
+def connect_to_arduino():
+    fail = False
+    while True:
+        try:
+            arduino = serial.Serial(port=port.device, baudrate=BAUDRATE, timeout=1)
+            if fail:
+                print("Connected.")
+            return arduino
+        except:
+            if not running:
+                return None
+            print("Could not connect to microcontroller. Retrying in 5 seconds.")
+            fail = True
+            for _ in range(50):
+                time.sleep(0.1)
+                if not running:
+                    return None
+
+arduino = None
 
 def relay():
-    global new_data#, history
+    global new_data, arduino
 
-    while not new_data:
+    arduino = connect_to_arduino()
+
+    while running and not new_data:
         time.sleep(0)
 
     rgb_last = np.zeros((CHANNELS, 3,))
@@ -105,6 +140,8 @@ def relay():
             peak_frequency_values = frequency_values[indexes, np.arange(CHANNELS), :]
 
             rgb = color_wheel[indexes] * peak_frequency_values
+
+            peak_frequency_values = np.where(peak_frequency_values == 0, 1, peak_frequency_values) # Avoid divide by 0
             white_factor = frequency_values.mean(axis=0) / peak_frequency_values * settings["white_multiplier"]
             rgb += (peak_frequency_values - rgb) * white_factor
 
@@ -124,15 +161,12 @@ def relay():
         wobble_last = wobble
 
         cmax = rgb.max(axis=0).max(axis=0)
-        if cmax > 0:
+        if cmax > 1: # Avoid divide by 0
             maxes = maxes[1:] + [cmax]
         # Format to send
 
         rgb *= 255 / max(maxes) * settings["brightness"]
         rgb = rgb.astype(np.int32)
-
-        if new_data:
-            print("Output is too slow.")
 
         # Broadcast
 
@@ -140,11 +174,16 @@ def relay():
             m = settings["wobble"] * 0.5
             wobble_mult = np.where(wobble, math.sin(time.monotonic() * 2 * math.pi * 16) * m + 1 - m, 1).reshape(CHANNELS, 1)
 
-            arduino.write(bytes([42]))
-            arduino.write(bytes((rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist()))
+            try:
+                arduino.write(bytes([42]))
+                arduino.write(bytes((rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist()))
 
-            if arduino.read() != bytes([42]):
-                print("Invalid confirmation from arduino")
+                if arduino.read() != bytes([42]):
+                    print("Invalid confirmation from arduino.")
+            except:
+                print("Microcontroller disconnected.")
+                arduino = None
+                arduino = connect_to_arduino()
 
             time.sleep(0)
 
@@ -158,37 +197,55 @@ def callback(in_data, frame_count, time_info, status_flags):
 
     return in_data, pyaudio.paContinue
 
-stream = p.open(format=p.get_format_from_width(BYTES_PER_SAMPLE),
-                channels=CHANNELS,
-                rate=RATE,
-                input=True,
-                output=True,
-                frames_per_buffer=CHUNK,
-                input_device_index=input_device,
-                output_device_index=output_device,
-                stream_callback=callback)
+stream = None
 
-print('Relaying. Press enter to stop. Type SETTING=value to change settings')
+try:
+    stream = p.open(format=p.get_format_from_width(BYTES_PER_SAMPLE),
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    output=True,
+                    frames_per_buffer=CHUNK,
+                    input_device_index=input_device,
+                    output_device_index=output_device,
+                    stream_callback=callback)
+except:
+    print("Could not open stream.")
+    running = False
+
+else:
+    print('Relaying. Input setting=value to change settings. Input "exit" to exit')
 
 while running:
     a = input()
-    if not "=" in a:
+    if a == "exit":
         running = False
     else:
         a = a.split("=")
-        if a[0] in settings:
-            if type(settings[a[0]]) == int:
-                settings[a[0]] = int(a[1])
-            elif type(settings[a[0]]) == float:
-                settings[a[0]] = float(a[1])
-            print(f"Setting { a[0] } set to { settings[a[0]] }")
+        if len(a) == 2 and a[0] in settings:
+            try:
+                if type(settings[a[0]]) == int:
+                    settings[a[0]] = int(a[1])
+                elif type(settings[a[0]]) == float:
+                    settings[a[0]] = float(a[1])
+                print(f"Setting { a[0] } set to { settings[a[0]] }")
 
-print('Stopping')
+            except ValueError:
+                print("Input not recognized.")
+        else:
+            print("Input not recognized.")
+
+print('Stopping.')
 
 running = False
 
-stream.close()
+if stream:
+    stream.close()
 p.terminate()
 arduino_thread.join()
-arduino.write(bytes([42, 0, 0, 0]))
-arduino.close()
+
+if arduino != None:
+    arduino.write(bytes([42]))
+    arduino.write(bytes([0] * (CHANNELS * 3)))
+    arduino.read()
+    arduino.close()
