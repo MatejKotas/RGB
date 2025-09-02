@@ -115,12 +115,12 @@ Here is what each of the settings do:
 
 | Name             | Datatype            | Intended Values        | Description                                                                 |
 |------------------|---------------------|------------------------|-----------------------------------------------------------------------------|
-| mode             | Integer             | 0                      | There is currently only one mode and that mode is 0.                         |
-| white_multiplier | Decimal             | Positive               | Larger values make the color closer to white.                                |
-| smoothing        | Decimal             | 0 to 1, excluding 1    | Larger values cause the LED strip to fade out over a longer time period.     |
+| mode             | Integer             | 0                      | There is currently only one mode and that mode is 0.                        |
+| white_multiplier | Decimal             | Positive               | Larger values make the color closer to white.                               |
+| smoothing        | Decimal             | Positive               | Specifies the length of the fade out in seconds.                            |
 | wobble           | Decimal             | 0 to 1                 | If the peak frequency in a given chunk is below wobble_start, then a wobble effect is applied, and this determines the strength of the effect. 0 Turns off the effect. |
 | wobble_start     | Integer (frequency) | Positive               | Frequency threshold below which the wobble effect is applied. Default value is 60, which applies the wobble effect to just sub-bass. |
-| brightness       | Decimal             | 0 to 1                 | Controls the brightness level of the LED strips.                             |
+| brightness       | Decimal             | 0 to 1                 | Controls the brightness level of the LED strips.                            |
 | bass_start       | Integer (frequency) | Positive               | Frequency threshold below which the bass_multiplier is applied. The value only matters if bass_multiplier is anything but 1.0. |
 | bass_multiplier  | Decimal             | 0 to 1                 | During the color calculation, this can reduce the influence bass frequencies, potentially letting higher frequencies determine the hue. This is useful for bass boosted sound output, or music that is dominated by bass. |
 

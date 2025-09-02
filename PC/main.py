@@ -6,7 +6,7 @@ import serial.tools.list_ports
 import time
 from threading import Thread
 
-settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":0.9, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
+settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
 
 CHUNK = 1024
 RATE = 44100
@@ -152,21 +152,24 @@ def relay():
 
         # Post processing
 
-        rgb_last *= settings["smoothing"]
-
-        wobble = np.where(rgb[:, 0] < rgb_last[:, 0], wobble_last, wobble)
-        assert wobble.shape == (CHANNELS,)
-
-        rgb = np.where(rgb > rgb_last, rgb, rgb_last)
-        rgb_last = rgb.copy()
-        wobble_last = wobble
-
         cmax = rgb.max(axis=0).max(axis=0)
         if cmax > 1: # Avoid divide by 0
             maxes = maxes[1:] + [cmax]
+        cmax = max(maxes)
+
+        rgb_last -= cmax * CHUNK / RATE / settings["smoothing"]
+        rgb_last = np.where(rgb_last < 0, 0, rgb_last)
+
+        rgb = np.where(rgb > rgb_last, rgb, rgb_last)
+        rgb_last = rgb.copy()
+
+        wobble = np.where(rgb[:, 0] < rgb_last[:, 0], wobble_last, wobble)
+        assert wobble.shape == (CHANNELS,)
+        wobble_last = wobble
+
         # Format to send
 
-        rgb *= 255 / max(maxes) * settings["brightness"]
+        rgb *= 255 / cmax * settings["brightness"]
         rgb = rgb.astype(np.int32)
 
         # Broadcast
