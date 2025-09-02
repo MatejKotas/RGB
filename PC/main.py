@@ -6,7 +6,7 @@ import serial.tools.list_ports
 import time
 from threading import Thread
 
-settings = {"mode": 0, "white_multiplier": 3.0, "wobble": 0.25, "smoothing":0.9, "wobble_start":60, "brightness":0.5}
+settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":0.9, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
 
 CHUNK = 1024
 RATE = 44100
@@ -137,6 +137,7 @@ def relay():
 
         if settings["mode"] == 0:
             indexes = frequency_values.argmax(axis=0)[:, 0]
+            frequency_values[frequencies < settings["bass_start"], :, :] *= settings["bass_multiplier"]
             peak_frequency_values = frequency_values[indexes, np.arange(CHANNELS), :]
 
             rgb = color_wheel[indexes] * peak_frequency_values
