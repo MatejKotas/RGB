@@ -95,6 +95,7 @@ class RGB:
         else:
             self.new_data = False
             self.running = True
+            self.arduino = None
 
             Thread(target=self.relay).start()
             Thread(target=self.run).start()
@@ -213,10 +214,11 @@ class RGB:
 
                 time.sleep(0)
 
-        self.arduino.write(bytes([42]))
-        self.arduino.write(bytes([0] * (CHANNELS * 3)))
-        self.arduino.read()
-        self.arduino.close()
+        if self.arduino:
+            self.arduino.write(bytes([42]))
+            self.arduino.write(bytes([0] * (CHANNELS * 3)))
+            self.arduino.read()
+            self.arduino.close()
 
     def callback(self, in_data, frame_count, time_info, status_flags):
         self.data = in_data
