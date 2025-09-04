@@ -6,7 +6,7 @@ import serial.tools.list_ports
 import time
 from threading import Thread
 
-settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
+settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":0.5, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
 
 CHUNK = 1024
 RATE = 44100
