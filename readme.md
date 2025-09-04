@@ -54,7 +54,13 @@ Download and install [VB-Cable](https://vb-audio.com/Cable/index.htm). The free 
 
 #### 2. The program
 
-Install python and the libraries listed in main.py if you don't have these already. 
+1. Install python if you havn't already.
+2. Install the required libraries with:
+
+```
+cd PC
+pip install -r requirements.txt
+``` 
 
 #### 3. The Arduino
 
