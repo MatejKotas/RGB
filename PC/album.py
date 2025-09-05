@@ -13,7 +13,7 @@ class Album:
         load_dotenv()
 
         if os.getenv("Enable") != "1":
-            print("Album cover display is not enabled")
+            print("Album cover display is not enabled.")
             return
 
         # Access environment variables
@@ -72,7 +72,8 @@ class Album:
             self.connected_clients.remove(websocket)
 
     def start(self):
-        asyncio.run(self.run())
+        if os.getenv("Enable") == "1":
+            asyncio.run(self.run())
 
     async def run(self):
         print("Setting up album cover display.")
