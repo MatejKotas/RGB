@@ -18,7 +18,7 @@ BYTES_PER_SAMPLE = 3
 PYAUDIO_FORMAT = pyaudio.paInt24
 
 class RGB:
-    def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None):
+    def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None):
         if settings == None:
             settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":0.5, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
 
@@ -26,6 +26,12 @@ class RGB:
         self.RATE = RATE
         self.BAUDRATE = BAUDRATE
         self.settings = settings
+        self.exit_callback = exit_callback
+        self.sound_start_callback = sound_start_callback
+
+        self.new_data = False
+        self.running = True
+        self.arduino = None
 
         self.p = pyaudio.PyAudio()
 
@@ -91,14 +97,6 @@ class RGB:
         except:
             print("Could not open stream.")
             self.p.terminate()
-        
-        else:
-            self.new_data = False
-            self.running = True
-            self.arduino = None
-
-            Thread(target=self.relay).start()
-            Thread(target=self.run).start()
 
     def input_number(self, type, lower, upper):
         while True:
@@ -140,6 +138,7 @@ class RGB:
         rgb_last = np.zeros((CHANNELS, 3,))
         wobble_last = np.zeros((CHANNELS,), dtype=np.bool)
         maxes = [1] * int(60 * self.RATE / self.CHUNK)
+        silent = False
 
         while self.running:
             self.new_data = False
@@ -179,6 +178,14 @@ class RGB:
             cmax = rgb.max(axis=0).max(axis=0)
             if cmax > 1: # Avoid divide by 0
                 maxes = maxes[1:] + [cmax]
+
+                if silent and self.sound_start_callback:
+                    self.sound_start_callback()
+
+                silent = False
+            else:
+                silent = True
+
             cmax = max(maxes)
 
             rgb_last -= cmax * self.CHUNK / self.RATE / self.settings["smoothing"]
@@ -226,7 +233,10 @@ class RGB:
 
         return in_data, pyaudio.paContinue
 
+    # This function takes input from the console so its good practice to run it on the main thread
     def run(self):
+        Thread(target=self.relay).start()
+
         print('Relaying. Input setting=value to change settings. Input "exit" to exit')
 
         while self.running:
@@ -252,4 +262,6 @@ class RGB:
 
         self.stream.close()
         self.p.terminate()
+        if self.exit_callback:
+            self.exit_callback()
         

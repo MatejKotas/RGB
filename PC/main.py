@@ -1,3 +1,3 @@
 from RGB import RGB
 
-RGB()
+RGB().run()
