@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fullscreen Image</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        img {
+            max-width: 30%;
+            height: auto;
+            transition: all 0.3s;
+            object-fit: contain;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <img alt="Album cover" id="main">
+    <button onclick="fullscreen()">Toggle Fullscreen</button>
+
+    <script>
+        const img = document.getElementById('main');
+        function fullscreen() {
+            img.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        }
+
+        // Create WebSocket connection.
+        const socket = new WebSocket("ws://localhost:8765");
+
+        // Connection opened
+        socket.addEventListener("open", (event) => {
+        socket.send("hello");
+        });
+
+        // Listen for messages
+        socket.addEventListener("message", (event) => {
+            img.src = event.data;
+        });
+    </script>
+</body>
+
+</html>
