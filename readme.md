@@ -62,6 +62,8 @@ cd PC
 pip install -r requirements.txt
 ``` 
 
+3. (Optional) Follow the steps in [album_cover_display.md](album_cover_display.md) to set up a fullscreen album cover display on a seperate monitor. 
+
 #### 3. The Arduino
 
 Use [Arduino IDE](https://www.arduino.cc/en/software/) to upload Arduino/Arduino.ino to your microcontroller. Make sure to modify NUM_LEDS, DATA_PIN_LEFT, DATA_PIN_RIGHT, MAX_POWER_MILLIAMPS, PROTOCOL, and COLOR_ORDER according to your setup. 
