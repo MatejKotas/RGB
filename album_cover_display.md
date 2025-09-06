@@ -25,4 +25,9 @@ http://127.0.0.1:8081
 4. Put Enable=1 instead of Enable=0 in .env
 5. Run the program.
 6. The first time you run the program, a webpage will ask you to log in and give the program access to the API. Do as it says.
-7. Copy the url you were redirected to after allowing API access and paste it in the console when prompted.
+7. If prompted, copy the url you were redirected to after allowing API access and paste it in the console.
+
+Note: If the image doesn't refresh automatically (sometimes it done't when a song is skipped) you may force a refresh by either:
+
+1. Typing "refresh" in the console and pressing enter.
+2. Clicing the image. (Click on the image twice, once to make it the active window, and another time to register the click)
