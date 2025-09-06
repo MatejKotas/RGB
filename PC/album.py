@@ -33,7 +33,7 @@ class Album:
             await self.runner.cleanup()
 
     async def playback_start(self):
-        if self.enabled:
+        if self.enabled and not self.track_playing:
             await self.get_album_cover()
 
     async def command_refresh_album_cover(self):
