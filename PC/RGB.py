@@ -1,10 +1,10 @@
+import asyncio
 import math
 import numpy as np
 import pyaudio
 import serial
 import serial.tools.list_ports
 import time
-from threading import Thread
 
 # CHUNK = 1024
 # RATE = 44100
@@ -60,47 +60,12 @@ class RGB:
 
         self.color_wheel = np.stack((r, g, b), axis=1).reshape(len(self.frequencies), 3)
 
-        # Ask user for input
+    async def input(self):
+        return await self.loop.run_in_executor(None, input)
 
-        print('\nAvailable audio devices:\n')
-        for i in range(self.p.get_device_count()):
-            info = self.p.get_device_info_by_index(i)
-            print(f'Device {i + 1}: {info['name']}')
-
-        print('\nSelect input device')
-        input_device = self.input_number(int, 1, self.p.get_device_count()) - 1
-        print('Select output device')
-        output_device = self.input_number(int, 1, self.p.get_device_count()) - 1
-
-        print("\nAvailable ports:\n")
-
-        ports = serial.tools.list_ports.comports()
-        for i, port in enumerate(ports, 1):
-            print(f"{i}: {port.device}")
-
-        print("\nSelect port")
-        port_index = self.input_number(int, 1, len(ports)) - 1
-        self.port = ports[port_index]
-
-        # Open stream
-
-        try:
-            self.stream = self.p.open(format=self.p.get_format_from_width(BYTES_PER_SAMPLE),
-                            channels=CHANNELS,
-                            rate=RATE,
-                            input=True,
-                            output=True,
-                            frames_per_buffer=CHUNK,
-                            input_device_index=input_device,
-                            output_device_index=output_device,
-                            stream_callback=self.callback)
-        except:
-            print("Could not open stream.")
-            self.p.terminate()
-
-    def input_number(self, type, lower, upper):
+    async def input_number(self, type, lower, upper):
         while True:
-            a = input()
+            a = await self.input()
             try:
                 b = type(a)
 
@@ -112,11 +77,11 @@ class RGB:
             except ValueError:
                 print("Number could not be parsed.")
 
-    def connect_to_arduino(self):
+    async def connect_to_arduino(self):
         fail = False
         while True:
             try:
-                self.arduino = serial.Serial(port=self.port.device, baudrate=self.BAUDRATE, timeout=1)
+                self.arduino = await self.loop.run_in_executor(None, lambda: serial.Serial(port=self.port.device, baudrate=self.BAUDRATE, timeout=1))
                 if fail:
                     print("Connected.")
                 return
@@ -125,15 +90,15 @@ class RGB:
                 print("Could not connect to microcontroller. Retrying in 5 seconds.")
                 fail = True
                 for _ in range(50):
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.1)
                     if not self.running:
                         return
 
-    def relay(self):
-        self.connect_to_arduino()
+    async def relay(self):
+        await self.connect_to_arduino()
 
         while not self.new_data:
-            time.sleep(0)
+            await asyncio.sleep(0)
 
         rgb_last = np.zeros((CHANNELS, 3,))
         wobble_last = np.zeros((CHANNELS,), dtype=np.bool)
@@ -180,7 +145,7 @@ class RGB:
                 maxes = maxes[1:] + [cmax]
 
                 if silent and self.sound_start_callback:
-                    self.sound_start_callback()
+                    self.loop.create_task(self.sound_start_callback())
 
                 silent = False
             else:
@@ -210,22 +175,24 @@ class RGB:
                 wobble_mult = np.where(wobble, math.sin(time.monotonic() * 2 * math.pi * 16) * m + 1 - m, 1).reshape(CHANNELS, 1)
 
                 try:
-                    self.arduino.write(bytes([42]))
-                    self.arduino.write(bytes((rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist()))
+                    data_out = bytes([42] + (rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist())
+                    await self.loop.run_in_executor(None, lambda: self.arduino.write(data_out))
 
-                    if self.arduino.read() != bytes([42]):
+                    data_in = await self.loop.run_in_executor(None, self.arduino.read)
+
+                    if data_in != bytes([42]):
                         print("Invalid confirmation from arduino.")
                 except:
                     print("Microcontroller disconnected.")
-                    self.connect_to_arduino()
+                    await self.connect_to_arduino()
 
-                time.sleep(0)
+                await asyncio.sleep(0)
 
         if self.arduino:
-            self.arduino.write(bytes([42]))
-            self.arduino.write(bytes([0] * (CHANNELS * 3)))
-            self.arduino.read()
-            self.arduino.close()
+            await self.arduino.write(bytes([42]))
+            await self.arduino.write(bytes([0] * (CHANNELS * 3)))
+            await self.arduino.read()
+            await self.arduino.close()
 
     def callback(self, in_data, frame_count, time_info, status_flags):
         self.data = in_data
@@ -234,13 +201,52 @@ class RGB:
         return in_data, pyaudio.paContinue
 
     # This function takes input from the console so its good practice to run it on the main thread
-    def run(self):
-        Thread(target=self.relay).start()
+    async def run(self):
+        self.loop = asyncio.get_event_loop()
+
+        # Ask user for input
+        print('\nAvailable audio devices:\n')
+        for i in range(self.p.get_device_count()):
+            info = self.p.get_device_info_by_index(i)
+            print(f'Device {i + 1}: {info['name']}')
+
+        print('\nSelect input device')
+        input_device = await self.input_number(int, 1, self.p.get_device_count()) - 1
+        print('Select output device')
+        output_device = await self.input_number(int, 1, self.p.get_device_count()) - 1
+
+        print("\nAvailable ports:\n")
+
+        ports = serial.tools.list_ports.comports()
+        for i, port in enumerate(ports, 1):
+            print(f"{i}: {port.device}")
+
+        print("\nSelect port")
+        port_index = await self.input_number(int, 1, len(ports)) - 1
+        self.port = ports[port_index]
+
+        # Open stream
+
+        try:
+            self.stream = self.p.open(format=self.p.get_format_from_width(BYTES_PER_SAMPLE),
+                            channels=CHANNELS,
+                            rate=self.RATE,
+                            input=True,
+                            output=True,
+                            frames_per_buffer=self.CHUNK,
+                            input_device_index=input_device,
+                            output_device_index=output_device,
+                            stream_callback=self.callback)
+        except:
+            print("Could not open stream.")
+            self.p.terminate()
+
+        self.loop.create_task(self.relay())
 
         print('Relaying. Input setting=value to change settings. Input "exit" to exit')
 
         while self.running:
-            a = input()
+            a = await self.input()
             if a == "exit":
                 self.running = False
             else:
@@ -262,6 +268,7 @@ class RGB:
 
         self.stream.close()
         self.p.terminate()
+
         if self.exit_callback:
-            self.exit_callback()
+            await self.exit_callback()
         
