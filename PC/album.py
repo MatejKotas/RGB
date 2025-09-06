@@ -47,7 +47,7 @@ class Album:
             print("Refreshing album cover display.")
 
         # Get current playback
-        current_track = self.sp.current_playback()
+        current_track = await self.loop.run_in_executor(None, self.sp.current_playback)
         
         if (not current_track) or (not current_track["item"]):
             self.track_playing = False
