@@ -174,25 +174,34 @@ class RGB:
                 m = self.settings["wobble"] * 0.5
                 wobble_mult = np.where(wobble, math.sin(time.monotonic() * 2 * math.pi * 16) * m + 1 - m, 1).reshape(CHANNELS, 1)
 
-                try:
-                    data_out = bytes([42] + (rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist())
-                    await self.loop.run_in_executor(None, lambda: self.arduino.write(data_out))
+                def write():
+                    try:
+                        self.arduino.write(bytes([42]))
+                        self.arduino.write((rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist())
 
-                    data_in = await self.loop.run_in_executor(None, self.arduino.read)
+                        if self.arduino.read() != bytes([42]):
+                            print("Invalid confirmation from arduino.")
+                        return True
 
-                    if data_in != bytes([42]):
-                        print("Invalid confirmation from arduino.")
-                except:
+                    except:
+                        return False
+
+                result = await self.loop.run_in_executor(None, write)
+
+                if not result:
                     print("Microcontroller disconnected.")
                     await self.connect_to_arduino()
 
                 await asyncio.sleep(0)
 
         if self.arduino:
-            await self.arduino.write(bytes([42]))
-            await self.arduino.write(bytes([0] * (CHANNELS * 3)))
-            await self.arduino.read()
-            await self.arduino.close()
+            def close():
+                self.arduino.write(bytes([42]))
+                self.arduino.write(bytes([0] * (CHANNELS * 3)))
+                self.arduino.read()
+                self.arduino.close()
+
+            await self.loop.run_in_executor(None, close)
 
     def callback(self, in_data, frame_count, time_info, status_flags):
         self.data = in_data
@@ -228,15 +237,16 @@ class RGB:
         # Open stream
 
         try:
-            self.stream = self.p.open(format=self.p.get_format_from_width(BYTES_PER_SAMPLE),
-                            channels=CHANNELS,
-                            rate=self.RATE,
-                            input=True,
-                            output=True,
-                            frames_per_buffer=self.CHUNK,
-                            input_device_index=input_device,
-                            output_device_index=output_device,
-                            stream_callback=self.callback)
+            self.stream = await self.loop.run_in_executor(None, lambda:
+                            self.p.open(format=self.p.get_format_from_width(BYTES_PER_SAMPLE),
+                                channels=CHANNELS,
+                                rate=self.RATE,
+                                input=True,
+                                output=True,
+                                frames_per_buffer=self.CHUNK,
+                                input_device_index=input_device,
+                                output_device_index=output_device,
+                                stream_callback=self.callback))
         except:
             print("Could not open stream.")
             self.p.terminate()

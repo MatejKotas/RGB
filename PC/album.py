@@ -11,8 +11,9 @@ class Album:
     def __init__(self, redirect_uri="http://localhost:8081/"):
         # Load variables from .env file
         load_dotenv()
+        self.enabled = os.getenv("Enable") == "1"
 
-        if os.getenv("Enable") != "1":
+        if not self.enabled:
             print("Album cover display is not enabled.")
             return
 
@@ -23,29 +24,43 @@ class Album:
 
         self.SCOPE = "user-read-playback-state"
 
-    def exit(self):
-        pass # TODO
+        self.track_playing = False
+        self.last_time_left = None
 
-    def playback_start(self):
-        pass # TODO
+    async def exit(self):
+        if self.enabled:
+            self.ws_server.close()
+            await self.runner.cleanup()
 
-    async def get_album_cover(self, sleep_amount=0):
+    async def playback_start(self):
+        if self.enabled:
+            await self.get_album_cover()
+
+    async def get_album_cover(self, sleep_amount=0, print_message=False):
         await asyncio.sleep(float(sleep_amount) / 1000)
-        print("Refreshing album cover.")
+
+        if print_message:
+            print("Refreshing album cover display.")
 
         # Get current playback
         current_track = self.sp.current_playback()
         
         if (not current_track) or (not current_track["item"]):
             self.track_playing = False
-            return None
+            album_cover_url = ""
 
-        self.track_playing = True
-        time_left = current_track["item"]["duration_ms"] - current_track["progress_ms"]
-        asyncio.gather(self.get_album_cover(time_left))
+        else:
+            self.track_playing = True
+            time_left = current_track["item"]["duration_ms"] - current_track["progress_ms"]
 
-        # Extract album cover URL
-        album_cover_url = current_track["item"]["album"]["images"][0]["url"]
+            if self.last_time_left == time_left:
+                self.track_playing = False
+
+            else:
+                self.loop.create_task(self.get_album_cover(time_left))
+
+            # Extract album cover URL
+            album_cover_url = current_track["item"]["album"]["images"][0]["url"]
 
         if self.connected_clients:
             await asyncio.gather(
@@ -62,7 +77,6 @@ class Album:
                 # Parse incoming message
                 if message == "hello":
                     self.connected_clients.add(websocket)
-                    print("Connected to album cover display.")
                     await self.get_album_cover()
 
         except websockets.exceptions.ConnectionClosed:
@@ -71,12 +85,12 @@ class Album:
             # Unregister client
             self.connected_clients.remove(websocket)
 
-    def start(self):
-        if os.getenv("Enable") == "1":
-            asyncio.run(self.run())
-
-    async def run(self):
+    async def start(self):
+        if not self.enabled:
+            raise Exception("Enviroment not configured for album cover display.")
         print("Setting up album cover display.")
+
+        self.loop = asyncio.get_event_loop()
 
         # Set up Spotify authentication
         self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
@@ -96,14 +110,7 @@ class Album:
 
         # Set up websocket server
         self.connected_clients = set()
-        self.ws_server = None
-
-        # Start websocket server
         self.ws_server = await websockets.serve(self.handle_connection, "localhost", 8765)
 
         # Open the right webpage
         webbrowser.open_new("http://localhost:8080")
-
-        # Wait for exit
-        await self.ws_server.wait_closed()
-        await self.runner.cleanup()
