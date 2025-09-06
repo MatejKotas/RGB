@@ -36,6 +36,10 @@ class Album:
         if self.enabled:
             await self.get_album_cover()
 
+    async def command_refresh_album_cover(self):
+        if self.enabled:
+            await self.get_album_cover(print_message=True)
+
     async def get_album_cover(self, sleep_amount=0, print_message=False):
         await asyncio.sleep(float(sleep_amount) / 1000)
 

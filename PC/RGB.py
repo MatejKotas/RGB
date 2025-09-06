@@ -18,7 +18,7 @@ BYTES_PER_SAMPLE = 3
 PYAUDIO_FORMAT = pyaudio.paInt24
 
 class RGB:
-    def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None):
+    def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, commands={}):
         if settings == None:
             settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":0.5, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
 
@@ -26,8 +26,10 @@ class RGB:
         self.RATE = RATE
         self.BAUDRATE = BAUDRATE
         self.settings = settings
+
         self.exit_callback = exit_callback
         self.sound_start_callback = sound_start_callback
+        self.commands = commands
 
         self.new_data = False
         self.running = True
@@ -210,7 +212,7 @@ class RGB:
         return in_data, pyaudio.paContinue
 
     # This function takes input from the console so its good practice to run it on the main thread
-    async def run(self):
+    async def run(self, additional_message=""):
         self.loop = asyncio.get_event_loop()
 
         # Ask user for input
@@ -253,12 +255,14 @@ class RGB:
 
         self.loop.create_task(self.relay())
 
-        print('Relaying. Input setting=value to change settings. Input "exit" to exit')
+        print(f'Relaying. Input setting=value to change settings. Input "exit" to exit. { additional_message }')
 
         while self.running:
             a = await self.input()
             if a == "exit":
                 self.running = False
+            elif a in self.commands:
+                self.loop.create_task(self.commands[a]())
             else:
                 a = a.split("=")
                 if len(a) == 2 and a[0] in self.settings:
@@ -270,7 +274,10 @@ class RGB:
                         print(f"Setting { a[0] } set to { self.settings[a[0]] }")
 
                     except ValueError:
-                        print("Input not recognized.")
+                        print("Number could not be parsed.")
+
+                elif len(a) == 2:
+                    print("Setting nonexistent.")
                 else:
                     print("Input not recognized.")
 
