@@ -40,7 +40,7 @@
 </head>
 
 <body>
-    <img alt="Album cover" id="main">
+    <img onclick="refresh()" alt="Album cover" id="main">
     <button onclick="fullscreen()">Fullscreen</button>
 
     <script>
@@ -49,6 +49,10 @@
             img.requestFullscreen().catch(err => {
                 console.error(`Error attempting to enable fullscreen: ${err.message}`);
             });
+        }
+
+        function refresh() {
+            socket.send("hello")
         }
 
         // Create WebSocket connection.
