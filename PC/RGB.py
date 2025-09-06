@@ -79,12 +79,12 @@ class RGB:
             except ValueError:
                 print("Number could not be parsed.")
 
-    async def connect_to_arduino(self):
+    async def connect_to_arduino(self, print_message=False):
         fail = False
         while True:
             try:
                 self.arduino = await self.loop.run_in_executor(None, lambda: serial.Serial(port=self.port.device, baudrate=self.BAUDRATE, timeout=1))
-                if fail:
+                if print_message or fail:
                     print("Connected.")
                 return
 
@@ -172,8 +172,7 @@ class RGB:
             rgb = rgb.astype(np.int32)
 
             # Broadcast
-
-            while not self.new_data:
+            while not self.new_data and self.running:
                 m = self.settings["wobble"] * 0.5
                 wobble_mult = np.where(wobble, math.sin(time.monotonic() * 2 * math.pi * 16) * m + 1 - m, 1).reshape(CHANNELS, 1)
 
@@ -183,17 +182,22 @@ class RGB:
                         self.arduino.write((rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist())
 
                         if self.arduino.read() != bytes([42]):
-                            print("Invalid confirmation from arduino.")
-                        return True
+                            return 1
+                        return 2
 
-                    except:
-                        return False
+                    except serial.serialutil.SerialException:
+                        return 0
 
                 result = await self.loop.run_in_executor(None, write)
-
-                if not result:
+                if result == 0:
                     print("Microcontroller disconnected.")
-                    await self.connect_to_arduino()
+                    await self.connect_to_arduino(print_message=True)
+                elif result == 1:
+                    print("Invalid confirmation from microcontroller. Waiting 5 seconds.")
+                    await asyncio.sleep(5)
+
+                if not self.running:
+                    break
 
                 await asyncio.sleep(0)
 
