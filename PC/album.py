@@ -8,7 +8,7 @@ import webbrowser
 import websockets
 
 class Album:
-    def __init__(self, redirect_uri="http://localhost:8081/"):
+    def __init__(self, redirect_uri="http://127.0.0.1:8081/"):
         # Load variables from .env file
         load_dotenv()
         self.enabled = os.getenv("Enable") == "1"
