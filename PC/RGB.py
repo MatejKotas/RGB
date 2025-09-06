@@ -20,7 +20,7 @@ PYAUDIO_FORMAT = pyaudio.paInt24
 class RGB:
     def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, commands={}):
         if settings == None:
-            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":0.5, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
+            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.25, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
 
         self.CHUNK = CHUNK
         self.RATE = RATE
@@ -155,14 +155,15 @@ class RGB:
 
             cmax = max(maxes)
 
-            rgb_last -= cmax * self.CHUNK / self.RATE / self.settings["smoothing"]
-            rgb_last = np.where(rgb_last < 0, 0, rgb_last)
+            if self.settings["smoothing"] > 0:
+                rgb_last -= cmax * self.CHUNK / self.RATE / self.settings["smoothing"]
+                rgb_last = np.where(rgb_last < 0, 0, rgb_last)
 
-            rgb = np.where(rgb > rgb_last, rgb, rgb_last)
-            rgb_last = rgb.copy()
+                rgb = np.where(rgb > rgb_last, rgb, rgb_last)
+                wobble = np.where(rgb[:, 0] < rgb_last[:, 0], wobble_last, wobble)
 
-            wobble = np.where(rgb[:, 0] < rgb_last[:, 0], wobble_last, wobble)
             assert wobble.shape == (CHANNELS,)
+            rgb_last = rgb.copy()
             wobble_last = wobble
 
             # Format to send
