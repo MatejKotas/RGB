@@ -20,7 +20,7 @@ PYAUDIO_FORMAT = pyaudio.paInt24
 class RGB:
     def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, commands={}):
         if settings == None:
-            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0}
+            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":0}
 
         self.CHUNK = CHUNK
         self.RATE = RATE
@@ -169,6 +169,7 @@ class RGB:
             # Format to send
 
             rgb *= 255 / cmax * self.settings["brightness"]
+            rgb = np.where(rgb < self.settings["minimum"], self.settings["minimum"], rgb)
             rgb = rgb.astype(np.int32)
 
             # Broadcast
