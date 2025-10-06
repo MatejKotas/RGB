@@ -169,7 +169,10 @@ class RGB:
             # Format to send
 
             rgb *= 255 / cmax * self.settings["brightness"]
+
+            wobble = np.where(rgb[:, 0] < self.settings["minimum"], False, wobble)
             rgb = np.where(rgb < self.settings["minimum"], self.settings["minimum"], rgb)
+
             rgb = rgb.astype(np.int32)
 
             # Broadcast
