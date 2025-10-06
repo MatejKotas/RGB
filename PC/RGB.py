@@ -18,7 +18,7 @@ BYTES_PER_SAMPLE = 3
 PYAUDIO_FORMAT = pyaudio.paInt24
 
 class RGB:
-    def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, commands={}):
+    def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, setting_changed_callback=None, commands={}):
         if settings == None:
             settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":0}
 
@@ -30,6 +30,7 @@ class RGB:
         self.exit_callback = exit_callback
         self.sound_start_callback = sound_start_callback
         self.commands = commands
+        self.setting_changed_callback = setting_changed_callback
 
         self.new_data = False
         self.running = True
@@ -281,6 +282,9 @@ class RGB:
                         elif type(self.settings[a[0]]) == float:
                             self.settings[a[0]] = float(a[1])
                         print(f"Setting { a[0] } set to { self.settings[a[0]] }")
+
+                        if self.setting_changed_callback:
+                            await self.setting_changed_callback()
 
                     except ValueError:
                         print("Number could not be parsed.")

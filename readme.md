@@ -119,6 +119,8 @@ E.g.
 brightness=0.25
 ```
 
+Or you may use the webpage settings panel.
+
 Here is what each of the settings do:
 
 | Name             | Datatype            | Intended Values        | Description                                                                 |
