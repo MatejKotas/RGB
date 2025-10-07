@@ -20,7 +20,7 @@ PYAUDIO_FORMAT = pyaudio.paInt24
 class RGB:
     def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, setting_changed_callback=None, commands={}):
         if settings == None:
-            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":0}
+            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":"#000000"}
 
         self.CHUNK = CHUNK
         self.RATE = RATE
@@ -171,8 +171,13 @@ class RGB:
 
             rgb *= 255 / cmax * self.settings["brightness"]
 
-            wobble = np.where(rgb[:, 0] < self.settings["minimum"], False, wobble)
-            rgb = np.where(rgb < self.settings["minimum"], self.settings["minimum"], rgb)
+            minimum = self.settings["minimum"][1:]
+            minimum = np.array([int(num, 16) for num in minimum])
+            minimum = minimum.reshape(3, 2)
+            minimum = minimum[:, 0] * 16 + minimum[:, 1]
+
+            wobble = np.where(rgb[:, 0] < minimum[0], False, wobble)
+            rgb = np.where(rgb < minimum, minimum, rgb)
 
             rgb = rgb.astype(np.int32)
 
@@ -281,6 +286,9 @@ class RGB:
                             self.settings[a[0]] = int(a[1])
                         elif type(self.settings[a[0]]) == float:
                             self.settings[a[0]] = float(a[1])
+                        elif type(self.settings[a[0]]) == str:
+                            self.settings[a[0]] = a[1]
+
                         print(f"Setting { a[0] } set to { self.settings[a[0]] }")
 
                         if self.setting_changed_callback:

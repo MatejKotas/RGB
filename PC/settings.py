@@ -39,7 +39,7 @@ class Settings:
                     settings = json.loads(message)
 
                     for setting in self.settings:
-                        self.settings[setting] = settings[setting]
+                        self.settings[setting] = type(self.settings[setting])(settings[setting])
 
                     await self.send_settings()
 
