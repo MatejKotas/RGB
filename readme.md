@@ -62,6 +62,8 @@ cd PC
 pip install -r requirements.txt
 ``` 
 
+3. (Optional) Follow the steps in [album_cover_display.md](album_cover_display.md) to set up a fullscreen album cover display on a seperate monitor. 
+
 #### 3. The Arduino
 
 Use [Arduino IDE](https://www.arduino.cc/en/software/) to upload Arduino/Arduino.ino to your microcontroller. Make sure to modify NUM_LEDS, DATA_PIN_LEFT, DATA_PIN_RIGHT, MAX_POWER_MILLIAMPS, PROTOCOL, and COLOR_ORDER according to your setup. 
@@ -117,6 +119,8 @@ E.g.
 brightness=0.25
 ```
 
+Or you may use the webpage settings panel.
+
 Here is what each of the settings do:
 
 | Name             | Datatype            | Intended Values        | Description                                                                 |
@@ -129,5 +133,7 @@ Here is what each of the settings do:
 | brightness       | Decimal             | 0 to 1                 | Controls the brightness level of the LED strips.                            |
 | bass_start       | Integer (frequency) | Positive               | Frequency threshold below which the bass_multiplier is applied. The value only matters if bass_multiplier is anything but 1.0. |
 | bass_multiplier  | Decimal             | 0 to 1                 | During the color calculation, this can reduce the influence bass frequencies, potentially letting higher frequencies determine the hue. This is useful for bass boosted sound output, or music that is dominated by bass. |
+| minimum          | Color               | #000000 to #ffffff | This sets the minimum brightness of each led channel. If this is anything but black, this will make the leds glow the set color when no sound is played. This setting is independent of brightness. |
+| white            | Color               | #000000 to #ffffff | This calibrates the color values for the "minimum" parameter. It should be set so that when minimum is #ffffff, the leds glow white. |
 
 Note that the program doesn't check if the values are in the recommended range, so bad values can raise exceptions.
