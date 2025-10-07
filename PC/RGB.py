@@ -176,7 +176,7 @@ class RGB:
 
             minimum = minimum * white // 255
 
-            wobble = np.where(rgb[:, 0] < minimum[0], False, wobble)
+            wobble = np.where(rgb[:, 0] <= minimum[0], False, wobble)
             rgb = np.where(rgb < minimum, minimum, rgb)
 
             rgb = rgb.astype(np.int32)
