@@ -20,7 +20,7 @@ PYAUDIO_FORMAT = pyaudio.paInt24
 class RGB:
     def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, setting_changed_callback=None, commands={}):
         if settings == None:
-            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":"#000000"}
+            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":"#000000", "white":"#FFE650"}
 
         self.CHUNK = CHUNK
         self.RATE = RATE
@@ -171,10 +171,10 @@ class RGB:
 
             rgb *= 255 / cmax * self.settings["brightness"]
 
-            minimum = self.settings["minimum"][1:]
-            minimum = np.array([int(num, 16) for num in minimum])
-            minimum = minimum.reshape(3, 2)
-            minimum = minimum[:, 0] * 16 + minimum[:, 1]
+            minimum = self.hex_to_rgb(self.settings["minimum"])
+            white = self.hex_to_rgb(self.settings["white"])
+
+            minimum = minimum * white // 255
 
             wobble = np.where(rgb[:, 0] < minimum[0], False, wobble)
             rgb = np.where(rgb < minimum, minimum, rgb)
@@ -219,6 +219,12 @@ class RGB:
                 self.arduino.close()
 
             await self.loop.run_in_executor(None, close)
+
+    def hex_to_rgb(self, hex):
+        hex = hex[1:]
+        hex = np.array([int(num, 16) for num in hex])
+        hex = hex.reshape(3, 2)
+        return hex[:, 0] * 16 + hex[:, 1]
 
     def callback(self, in_data, frame_count, time_info, status_flags):
         self.data = in_data

@@ -133,6 +133,7 @@ Here is what each of the settings do:
 | brightness       | Decimal             | 0 to 1                 | Controls the brightness level of the LED strips.                            |
 | bass_start       | Integer (frequency) | Positive               | Frequency threshold below which the bass_multiplier is applied. The value only matters if bass_multiplier is anything but 1.0. |
 | bass_multiplier  | Decimal             | 0 to 1                 | During the color calculation, this can reduce the influence bass frequencies, potentially letting higher frequencies determine the hue. This is useful for bass boosted sound output, or music that is dominated by bass. |
-| minimum          | Integer             | 0 to 255               | This sets the minimum brightness of the leds. If this is anything but zero, this will make the leds glow white when no sound is played. This setting is independent of brightness. |
+| minimum          | Color               | #000000 to #ffffff | This sets the minimum brightness of each led channel. If this is anything but black, this will make the leds glow the set color when no sound is played. This setting is independent of brightness. |
+| white            | Color               | #000000 to #ffffff | This calibrates the color values for the "minimum" parameter. It should be set so that when minimum is #ffffff, the leds glow white. |
 
 Note that the program doesn't check if the values are in the recommended range, so bad values can raise exceptions.
