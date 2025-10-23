@@ -135,5 +135,6 @@ Here is what each of the settings do:
 | bass_multiplier  | Decimal             | 0 to 1                 | During the color calculation, this can reduce the influence bass frequencies, potentially letting higher frequencies determine the hue. This is useful for bass boosted sound output, or music that is dominated by bass. |
 | minimum          | Color               | #000000 to #ffffff | This sets the minimum brightness of each led channel. If this is anything but black, this will make the leds glow the set color when no sound is played. This setting is independent of brightness. |
 | white            | Color               | #000000 to #ffffff | This calibrates the color values for the "minimum" parameter. It should be set so that when minimum is #ffffff, the leds glow white. |
+| ambient          | Color               | #000000 to #ffffff | This sets the ambient color of the leds when the microcontroller is not connected to the computer. This is saved on the microcontroller EEPROM, and read when the microcontroller connects to the computer. Note that this color is not affected by the "white" setting. |
 
 Note that the program doesn't check if the values are in the recommended range, so bad values can raise exceptions.

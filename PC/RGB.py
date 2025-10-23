@@ -20,7 +20,7 @@ PYAUDIO_FORMAT = pyaudio.paInt24
 class RGB:
     def __init__(self, CHUNK=1024, RATE=44100, BAUDRATE=115200, settings=None, exit_callback=None, sound_start_callback=None, setting_changed_callback=None, commands={}):
         if settings == None:
-            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":"#000000", "white":"#FFE650"}
+            settings = {"mode": 0, "white_multiplier": 1.0, "wobble": 0.5, "smoothing":1.0, "wobble_start":60, "brightness":0.5, "bass_start":250, "bass_multiplier":1.0, "minimum":"#000000", "white":"#FFE650", "ambient":"#000000"}
 
         self.CHUNK = CHUNK
         self.RATE = RATE
@@ -84,10 +84,21 @@ class RGB:
         fail = False
         while True:
             try:
-                self.arduino = await self.loop.run_in_executor(None, lambda: serial.Serial(port=self.port.device, baudrate=self.BAUDRATE, timeout=1))
-                if print_message or fail:
-                    print("Connected.")
-                return
+                def connect():
+                    self.arduino = serial.Serial(port=self.port.device, baudrate=self.BAUDRATE, timeout=1)
+                    while self.arduino.in_waiting < 4:
+                        pass
+
+                    if self.arduino.read() != bytes([42]):
+                        raise Exception("Invalid confirmation")
+
+                    r = int(self.arduino.read()[0])
+                    g = int(self.arduino.read()[0])
+                    b = int(self.arduino.read()[0])
+
+                    return f'#{r:02x}{g:02x}{b:02x}'
+
+                ambient_color = await self.loop.run_in_executor(None, connect)
 
             except:
                 print("Could not connect to microcontroller. Retrying in 5 seconds.")
@@ -96,6 +107,16 @@ class RGB:
                     await asyncio.sleep(0.1)
                     if not self.running:
                         return
+
+            else:
+                self.settings["ambient"] = ambient_color
+
+                if self.setting_changed_callback:
+                    await self.setting_changed_callback()
+
+                if print_message or fail:
+                    print("Connected.")
+                return
 
     async def relay(self):
         await self.connect_to_arduino()
@@ -173,8 +194,10 @@ class RGB:
 
             minimum = self.hex_to_rgb(self.settings["minimum"])
             white = self.hex_to_rgb(self.settings["white"])
+            ambient = self.hex_to_rgb(self.settings["ambient"])
 
             minimum = minimum * white // 255
+            ambient = ambient.tolist()
 
             wobble = np.where(rgb[:, 0] <= minimum[0], False, wobble)
             rgb = np.where(rgb < minimum, minimum, rgb)
@@ -186,16 +209,23 @@ class RGB:
                 m = self.settings["wobble"] * 0.5
                 wobble_mult = np.where(wobble, math.sin(time.monotonic() * 2 * math.pi * 16) * m + 1 - m, 1).reshape(CHANNELS, 1)
 
+                arr = [42]
+                arr += (rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist()
+                arr += ambient
+
                 def write():
                     try:
-                        self.arduino.write(bytes([42]))
-                        self.arduino.write((rgb * wobble_mult).reshape(CHANNELS * 3).astype(np.int32).tolist())
+                        self.arduino.write(bytes(arr))
+                        while self.arduino.in_waiting == 0:
+                            pass
 
                         if self.arduino.read() != bytes([42]):
                             return 1
                         return 2
 
                     except serial.serialutil.SerialException:
+                        return 0
+                    except OSError:
                         return 0
 
                 result = await self.loop.run_in_executor(None, write)
@@ -315,4 +345,3 @@ class RGB:
 
         if self.exit_callback:
             await self.exit_callback()
-        

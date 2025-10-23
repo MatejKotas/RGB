@@ -1,24 +1,34 @@
 #include <Arduino.h>
 #include <FastLED.h>
+#include <EEPROM.h>
 
 // Modify these according to your setup
-#define NUM_LEDS 150
+#define NUM_LEDS 300
 #define DATA_PIN_LEFT 3
-#define DATA_PIN_RIGHT 10
-#define MAX_POWER_MILLIAMPS 2500
+#define DATA_PIN_RIGHT 4
 #define PROTOCOL WS2812B
 #define COLOR_ORDER GBR
 
+#define disconnect_delay 100;
+#define save_delay 1000 * 60 * 2;
+
+CRGB ambient_color;
+unsigned long connection_timeout;
+bool connected = false;
+unsigned long save_timer;
+bool new_settings = false;
+
 // Define the arrays of leds
-CRGB leds_left[NUM_LEDS];
-CRGB leds_right[NUM_LEDS];
+CRGB leds[NUM_LEDS];
+
+#define brightness 64
 
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(1000);
 
-  FastLED.addLeds<PROTOCOL, DATA_PIN_LEFT, COLOR_ORDER>(leds_left, NUM_LEDS);
-  FastLED.addLeds<PROTOCOL, DATA_PIN_RIGHT, COLOR_ORDER>(leds_right, NUM_LEDS);
+  FastLED.addLeds<PROTOCOL, DATA_PIN_LEFT, COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.addLeds<PROTOCOL, DATA_PIN_RIGHT, COLOR_ORDER>(leds, NUM_LEDS);
 
   // You may use this as a refrence of protocols and color orderings
   // ## Clockless types ##
@@ -54,32 +64,89 @@ void setup() {
   // FastLED.addLeds<LPD1886, DATA_PIN, RGB>(leds, NUM_LEDS);
   // FastLED.addLeds<LPD1886_8BIT, DATA_PIN, RGB>(leds, NUM_LEDS);
 
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS);
+  ambient_color = readEEPROM();
 
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds_left[i] = CRGB::Black;
-    leds_right[i] = CRGB::Black;
-  }
+  colorFill(ambient_color, ambient_color);
 
-  FastLED.show();
+  Serial.write(42);
+  Serial.write(ambient_color.r);
+  Serial.write(ambient_color.g);
+  Serial.write(ambient_color.b); 
 }
 
 void loop() {
-  if (helper() == 42) {
-    CRGB c_left = CRGB(helper(), helper(), helper());
-    CRGB c_right = CRGB(helper(), helper(), helper());
+  unsigned long current_time = millis();
+  if (new_settings && save_timer < current_time) {
+    saveEEPROM(ambient_color);
+    new_settings = false;
+  }
+  if (connected && connection_timeout < current_time) {
+    connected = false;
 
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds_left[i] = c_left;
-      leds_right[i] = c_right;
+    colorFill(ambient_color, ambient_color);
+  }
+
+  if (Serial.available()) {
+    if (Serial.read() == 42) {
+
+      // Recieve colors
+      CRGB c_left = CRGB(helper(), helper(), helper());
+      CRGB c_right = CRGB(helper(), helper(), helper());
+      CRGB new_ambient_color = CRGB(helper(), helper(), helper());
+
+      // Set recieved color
+      colorFill(c_left, c_right);
+
+      // Send confirmation
+      Serial.write(42);
+
+      // Possibly start timer to save ambient color
+      if (!colorEquals(ambient_color, new_ambient_color)) {
+        ambient_color = new_ambient_color;
+
+        save_timer = millis() + save_delay;
+        new_settings = true;
+      }
+
+      // Update connection status
+      connection_timeout = millis() + disconnect_delay;
+      connected = true;
     }
-    FastLED.show();
-    Serial.write(42);
   }
 }
 
-uint8_t helper() {
-  while (!Serial.available())
-    ;
+int helper() {
+  while (!Serial.available()) {}
+
   return Serial.read();
+}
+
+void colorFill(CRGB left, CRGB right) {
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = left;
+  }
+  FastLED[0].showLeds(brightness);
+
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = right;
+  }
+
+  FastLED[1].showLeds(brightness);
+  delay(1); // FastLED causes Serial data corruption
+}
+
+bool colorEquals(CRGB c1, CRGB c2) {
+  return (c1.r == c2.r && c1.g == c2.g && c1.b == c2.b);
+}
+
+CRGB readEEPROM() {
+  return CRGB(EEPROM.read(0), EEPROM.read(1), EEPROM.read(2));
+}
+
+void saveEEPROM(CRGB color) {
+  if (!colorEquals(readEEPROM(), color)) {
+    EEPROM.write(0, color.r);
+    EEPROM.write(1, color.g);
+    EEPROM.write(2, color.b);
+  }
 }
