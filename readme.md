@@ -2,10 +2,6 @@
 
 I made this repository because I wanted music synchronized RGB lights, but all the solutions I could find either had no demo video, or they were too obnoxious (changing to a random color every beat). So I decided to make my own.
 
-## Demo
-
-Coming Soon (End of September 2025 most likely)
-
 ## Building and Installation Guide
 
 This is not meant to be a all-encompassing solution for all projects like this, rather think of this as a template to base your setup off of. 
